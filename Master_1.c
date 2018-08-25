@@ -1,13 +1,22 @@
 #include "common.h"
 
-void record(char commond[10], char str[10], int socketfd) {
+void record_log(char path[100]) {
+	char commond[10] = "date";
+	char buff[100];
+	FILE *fp = NULL;
+	fp = popen(commond, "r");
+	fgets(buff, 1000, fp);
+	printf("时间 : %s", buff);
+	printf("路径 : %s\n", path);
+}
+
+void record_commond(char commond[10], char str[10], int socketfd) {
 	int a;
 	char path[100] = "/Users/zou-jianfeng/HZ/8.23/on_line/";
 	strcat(path, str);
-	printf("存储成功 PATH : %s ", path);
 	strcat(path, commond);
 	strcat(path, ".log");
-	printf("NAME : %s\n", path + 38);
+	printf("存储成功 PATH : %s \n", path);
 	char buff[MAX_SIZE];
 	FILE *fp = NULL;
 	while ((a = recv(socketfd, buff, MAX_SIZE, 0)) > 0) {
@@ -17,21 +26,21 @@ void record(char commond[10], char str[10], int socketfd) {
 		memset(buff, 0, sizeof(buff));	
 	}
 	fclose(fp);
+	//record_log(path);
 }
 
-void chose_commond(char str[10], int ind, int socketfd) {
+void choose_Pi(char str[10], int ind, int socketfd) {
 	switch (ind) {
 		case 1 :
-			record("test", str, socketfd);
+			record_commond("test", str, socketfd);
 		case 2 :
-			record("a.sh", str, socketfd);
+			record_commond("a.sh", str, socketfd);
 		case 3 :
-			record("date", str, socketfd);
+			record_commond("date", str, socketfd);
 	}
 }
 
 int main(int argc, char const *argv[]) {
-
 	int server_listen, socketfd, port, pid;
 	if (argc != 2) {
 		printf("Usage\n");
@@ -70,15 +79,15 @@ int main(int argc, char const *argv[]) {
 			switch (ind) {
 				case 1 :
 					n = recv(socketfd, &ind, sizeof(n), 0);
-					chose_commond("Pi_1/", ind, socketfd);
+					choose_Pi("Pi_1/", ind, socketfd);
 					break;
 				case 2 :
 					n = recv(socketfd, &ind, sizeof(n), 0);
-					chose_commond("Pi_2/", ind, socketfd);
+					choose_Pi("Pi_2/", ind, socketfd);
 				 	break;
 				case 3 :
 					n = recv(socketfd, &ind, sizeof(n), 0);
-					chose_commond("Pi_3/", ind, socketfd);
+					choose_Pi("Pi_3/", ind, socketfd);
 					break;
 			}
 
@@ -86,7 +95,6 @@ int main(int argc, char const *argv[]) {
 		}
 		close(socketfd);
 	}
-
 
 	return 0;
 }
