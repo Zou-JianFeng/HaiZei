@@ -6,7 +6,8 @@ char *get_path(char *, int);
 void record(char *, int, char *);
 void Write(char *, char *);
 char *Read(char *);
-void record_in(char *, char *);
+void record_pihealthd(char *, char *);
+void record_warning(int, char *);
 
 int main(int argc, char const *argv[]) {
 	int server_listen, socket_fd, port, pid;
@@ -33,6 +34,7 @@ int main(int argc, char const *argv[]) {
 			char *path = get_path(buff_peer, socket_fd);
 			record(path, socket_fd, buff_peer);
 			close(socket_fd);
+			signal(SIGPIPE, SIG_IGN);
 		}
 		close(socket_fd);
 	}
@@ -62,17 +64,31 @@ char *get_path(char ip[ip_len], int socket_fd) {
 void record(char path[100], int socket_fd, char buff_peer[100]) {
 	int n;
 	char buff[MAX_LEN];
-	FILE *fp = fopen(path, "a+");
 	while ((n = recv(socket_fd, buff, MAX_LEN, 0)) > 0) {
-		fputs(buff, fp);
+		if (buff[0] == '$') {
+			record_warning(socket_fd, buff_peer);
+		} 
+		Write(buff, path);
 		fflush(stdout);
 		memset(buff, 0, sizeof(buff));	
 	}
-	fclose(fp);
-	record_in(path, buff_peer);
+	record_pihealthd(path, buff_peer);
 }
 
-void record_in(char path[100], char buff_peer[100]) {
+void record_warning(int socket_fd, char buff_peer[100]) {
+	char buff[MAX_LEN];
+	char temp[MAX_LEN];
+	int n;
+	n = recv(socket_fd, temp, MAX_LEN, 0);
+	strcpy(buff, Read("date"));
+	n = strlen(buff);
+	buff[n - 1] = ' ';
+	strcat(buff, buff_peer);
+	strcat(buff, temp);
+	Write(buff, "/Users/zou-jianfeng/HZ/8.23/on_line/warning.log");
+}
+
+void record_pihealthd(char path[100], char buff_peer[100]) {
 	char buff[MAX_LEN] = {0};
 	strcpy(buff, Read("date"));
 	int n = strlen(buff);
