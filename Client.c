@@ -9,20 +9,23 @@ void Write(char *, char *);
 char *Read(char *);
 
 void record(char *, char *);
-char *ten_record(char *, int);
+char *ten_record(char *, int, int);
 void off_line(char *, int);
 void Check_connect(char *, int, int);
 void send_record(char *, int, int);
 void send_off(char *, int);
 void send_on(char *, int, int);
+char *Check_warning(char *, int);
+char *Name(char *);
 
 int main(int argc, char *argv[]) {
 	int socket_fd;
-	char *ip_addr = argv[1];
-	int port = atoi(argv[2]);
+	char *ip_addr = "192.168.1.182";
+	char *Port = "2118";
+	int port = atoi(Port);
 
 	int pid = 1, x;
-	for (int i = 0; i < 6; ++i) {
+	for (int i = 0; i < 4; ++i) {
 		if (pid != 0) {
 			x = i;
 			pid = fork();
@@ -38,17 +41,13 @@ int main(int argc, char *argv[]) {
 				case 1: temp("Bash disk.sh", 3)
 				case 2: temp("Bash test1.sh", 10)
 				case 3: temp("Bash mem.sh", 5)
-				case 4: 
-					sleep(100);
-					break;
-				case 5: 
-					sleep(100);
-					break;
 				default :
 					printf("fork出错\n");
 					break;
 			}
 			#undef temp
+		} else {
+			sleep(1);
 		}
 	}
  	return 0;
@@ -59,51 +58,81 @@ void Check_connect(char commond[commondsize], int n, int socket_fd) {
 	else send_record(commond, socket_fd, n);
 }
 
+char *Name(char commond[commondsize]) {
+	char *name = (char *)malloc(10);
+	strcpy(name, commond);
+	int n = strlen(name) - 3;
+	name[n] = '\0';
+	return name + 5;
+}
+
+void off_line(char commond[commondsize], int n) {
+	char path[100] = "/Users/zou-jianfeng/HZ/8.23/off_line/Pi_1/";
+	char *name = Name(commond);
+	strcat(path, name);
+	strcat(path, ".log"); 
+	char *buff = ten_record(commond, n, -123321);
+	Write(buff, path);
+	record(": 请求连接失败 ", commond);
+}
+
 void send_record(char commond[commondsize], int socket_fd, int n) {
-	send(socket_fd, commond + 5, strlen(commond), 0);
+	send(socket_fd, Name(commond), strlen(commond), 0);
 	send_off(commond, socket_fd);
 	send_on(commond, socket_fd, n);
 }
 
 void record(char ans[20], char commond[commondsize]) {
 	char path[100] = "/Users/zou-jianfeng/HZ/8.23/off_line/Pi_1/pihealthd.log";
-	char buff[MAX_LEN] = {0}, c;
+	char buff[MAX_LEN] = {0};
 	strcpy(buff, Read("date"));
 	int n = strlen(buff);
 	buff[n - 1] = ' ';
 	strcat(buff, ans);
-	strcat(buff, commond +5);
+	char *name = Name(commond);
+	strcat(buff, name);
 	strcat(buff, "\n");
 	strcat(buff, "\n");
 	Write(buff, path);
 	//printf("日志存储成功 : %s\n", path);
-	printf("%s\n", buff);
+	//printf("%s\n", buff);
 }
 
-char *ten_record(char commond[commondsize], int n) {
+char *Check_warning(char buff[MAX_LEN], int socket_fd) {
+	int n = strlen(buff) - 2;
+	if (buff[n] == '$') {
+		//printf("worning\n");
+		buff[n] = '\n';
+		buff[n + 1] = '\0';
+		if (socket_fd == -123321) {
+			Write(buff, "/Users/zou-jianfeng/HZ/8.23/off_line/Pi_1/warning.log");
+		} else {
+			send(socket_fd, "$", 1, 0);
+			send(socket_fd, buff, strlen(buff), 0);
+		}
+		buff[n] = ' ';
+	}
+	return buff;
+}
+
+char *ten_record(char commond[commondsize], int n, int socket_fd) {
 	int f = frequency;
 	char *buff = (char *)malloc(MAX_LEN);
+	char *temp = (char *)malloc(MAX_LEN);
 	while (f--) {
-		strcat(buff, Read(commond));
+		temp = Check_warning(Read(commond), socket_fd);
+		strcat(buff, temp);
 		sleep(n);
 	}
-	strcat(buff, "\n");
+	//strcat(buff, "\n");
 	strcat(buff, "\0");
 	return buff;
 }
 
-void off_line(char commond[commondsize], int n) {
-	char path[100] = "/Users/zou-jianfeng/HZ/8.23/off_line/Pi_1/";
-	strcat(path, commond + 5);
-	strcat(path, ".log"); 
-	char *buff = ten_record(commond, n);
-	Write(buff, path);
-	//record(": 请求连接失败 ", commond);
-}
-
 void send_off(char commond[commondsize], int socket_fd) {
 	char path[100] = "/Users/zou-jianfeng/HZ/8.23/off_line/Pi_1/";
-	strcat(path, commond + 5);
+	char *name = Name(commond);
+	strcat(path, name);
 	strcat(path, ".log");
 	FILE *fp = fopen(path, "r");
 	if (!fp) return ;
@@ -116,8 +145,7 @@ void send_off(char commond[commondsize], int socket_fd) {
 }
 
 void send_on(char commond[commondsize], int socket_fd, int n) {
-	char *buff = ten_record(commond, n);
-	printf("%s", buff);
+	char *buff = ten_record(commond, n, socket_fd);
 	send(socket_fd, buff, strlen(buff), 0);
 	record(": 在线发送成功 ", commond);
 }
@@ -129,7 +157,7 @@ int Connect(int port, char* ip_addr) {
 	return socket_fd;
 } 
 
-void Write(char buff[MAX_LEN], char path[Path_LEN] ) {
+void Write(char buff[MAX_LEN], char path[Path_LEN]) {
 	FILE *fp = fopen(path, "a+");
 	if (!fp) return;
 	fputs(buff, fp);
@@ -143,10 +171,6 @@ char *Read(char commond[commondsize]) {
 	FILE *fp = popen(commond, "r");
 	while (~fscanf(fp, "%c", &c)) {
 		buff[i++] = c;
-		if (c == '&') {
-			record(" : 警告 ", buff);
-			break;
-		}
 	}
 	pclose(fp);
 	return buff;
