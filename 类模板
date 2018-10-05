@@ -1,0 +1,42 @@
+#include <iostream>
+#include <string>
+using std::cin;
+using std::cout;
+using std::endl;
+using std::string;
+
+template <typename T1, typename T2>
+class Test {
+public:
+	T1 add(T1 a, T2 b);
+	T1 sub(T1 a, T2 b);
+	T1 mul(T1 a, T2 b);
+	T1 div(T1 a, T2 b);
+};
+
+template <typename T1, typename T2>
+T1 Test<T1, T2>::add(T1 a, T2 b) {
+	return a + b;
+}
+
+template <typename T1, typename T2>
+T1 Test<T1, T2>::sub(T1 a, T2 b) {
+	return a - b;
+}
+
+template <typename T1, typename T2>
+T1 Test<T1, T2>::mul(T1 a, T2 b) {
+	return a * b;
+}
+
+template <typename T1, typename T2>
+T1 Test<T1, T2>::div(T1 a, T2 b) {
+	return a / b;
+}
+
+int main() {
+	Test<double, int> t;
+	cout << t.add(1.4, 3) << endl;
+
+	return 0;
+}
